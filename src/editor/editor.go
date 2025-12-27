@@ -74,18 +74,19 @@ import (
 // will supply interface functions that are needed to the systems that it holds
 // internally.
 type Editor struct {
-	host             *engine.Host
-	settings         editor_settings.Settings
-	project          project.Project
-	workspaceState   WorkspaceState
-	workspaces       workspaces
-	globalInterfaces globalInterface
-	currentWorkspace editor_workspace.Workspace
-	logging          editor_logging.Logging
-	history          memento.History
-	events           editor_events.EditorEvents
-	stageView        editor_stage_view.StageView
-	window           struct {
+	host                *engine.Host
+	settings            editor_settings.Settings
+	project             project.Project
+	workspaceState      WorkspaceState
+	workspaces          workspaces
+	globalInterfaces    globalInterface
+	currentWorkspace    editor_workspace.Workspace
+	logging             editor_logging.Logging
+	history             memento.History
+	events              editor_events.EditorEvents
+	stageView           editor_stage_view.StageView
+	autoTestProjectPath string
+	window              struct {
 		activateId     events.Id
 		deactivateId   events.Id
 		lastActiveTime time.Time
@@ -163,10 +164,13 @@ func (ed *Editor) postProjectLoad() {
 	ed.workspaces.ui.Initialize(ed.host, ed)
 	ed.workspaces.settings.Initialize(ed.host, ed)
 	ed.setWorkspaceState(WorkspaceStateStage)
-	// goroutine
-	go ed.project.CompileDebug()
-	// goroutine
-	go ed.project.ReadSourceCode()
+	isAutoTest := build.Debug && engine.LaunchParams.AutoTest
+	if !isAutoTest {
+		// goroutine
+		go ed.project.CompileDebug()
+		// goroutine
+		go ed.project.ReadSourceCode()
+	}
 	if build.Debug && ed.initAutoTest() {
 		ed.updateId = ed.host.Updater.AddUpdate(ed.runAutoTest)
 	} else {
